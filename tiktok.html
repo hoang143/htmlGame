@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Scroll - TikTok Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1c1c1c;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .video-container {
+            width: 100vw;
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-item {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .toggle-sound {
+            padding: 10px;
+            background-color: #fff;
+            border: none;
+            color: #000;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        .toggle-sound:hover {
+            background-color: #ccc;
+        }
+
+        .video-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .video-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="video-container">
+    <!-- Video 1 -->
+    <div class="video-item">
+        <video class="video" src="https://www.w3schools.com/html/movie.mp4" autoplay muted loop></video>
+        <div class="controls">
+            <button class="toggle-sound">Unmute</button>
+        </div>
+    </div>
+
+    <!-- Video 2 -->
+    <div class="video-item">
+        <video class="video" src="https://www.w3schools.com/html/movie.mp4" autoplay muted loop></video>
+        <div class="controls">
+            <button class="toggle-sound">Unmute</button>
+        </div>
+    </div>
+
+    <!-- Video 3 -->
+    <div class="video-item">
+        <video class="video" src="https://www.w3schools.com/html/movie.mp4" autoplay muted loop></video>
+        <div class="controls">
+            <button class="toggle-sound">Unmute</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const videos = document.querySelectorAll('.video');
+    const toggleButtons = document.querySelectorAll('.toggle-sound');
+
+    let currentVideoIndex = 0;
+
+    // Tự động chuyển video khi cuộn
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+
+        // Đoạn mã này chuyển đổi video khi cuộn
+        videos.forEach((video, index) => {
+            const videoTop = video.offsetTop;
+            const videoHeight = video.offsetHeight;
+
+            if (scrollY >= videoTop - window.innerHeight / 2 && scrollY < videoTop + videoHeight - window.innerHeight / 2) {
+                video.play();
+                video.muted = false;
+                currentVideoIndex = index;
+            } else {
+                video.pause();
+                video.muted = true;
+            }
+        });
+    });
+
+    // Tắt hoặc bật âm thanh của video
+    toggleButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+            const video = videos[index];
+            if (video.muted) {
+                video.muted = false;
+                button.textContent = 'Mute';
+            } else {
+                video.muted = true;
+                button.textContent = 'Unmute';
+            }
+        });
+    });
+
+    // Start playing the first video on page load
+    window.addEventListener('load', () => {
+        const firstVideo = videos[0];
+        firstVideo.play();
+        firstVideo.muted = false;  // Unmute the first video
+    });
+</script>
+
+</body>
+</html>
