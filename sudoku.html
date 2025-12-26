@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Game - 10 Levels</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        .game-container {
+            width: 450px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 5px;
+        }
+
+        .sudoku-cell {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 20px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sudoku-cell input {
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 20px;
+            border: none;
+            background-color: transparent;
+            outline: none;
+        }
+
+        .sudoku-cell.read-only {
+            background-color: #ddd;
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #level-info {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="level-info"></div>
+    <div id="sudoku-board" class="sudoku-board"></div>
+    <div class="controls">
+        <button id="checkButton">Check Solution</button>
+    </div>
+    <div id="message"></div>
+</div>
+
+<script>
+    const sudokuLevels = [
+        [
+            [5, 3, 0, 0, 7, 0, 0, 0, 0],
+            [6, 0, 0, 1, 9, 5, 0, 0, 0],
+            [0, 9, 8, 0, 0, 0, 0, 6, 0],
+            [8, 0, 0, 0, 6, 0, 0, 0, 3],
+            [4, 0, 0, 8, 0, 3, 0, 0, 1],
+            [7, 0, 0, 0, 2, 0, 0, 0, 6],
+            [0, 6, 0, 0, 0, 0, 2, 8, 0],
+            [0, 0, 0, 4, 1, 9, 0, 0, 5],
+            [0, 0, 0, 0, 8, 0, 0, 7, 9]
+        ],
+        [
+            [3, 0, 0, 0, 7, 0, 0, 0, 1],
+            [0, 9, 0, 0, 0, 0, 5, 0, 0],
+            [0, 0, 1, 0, 0, 0, 8, 0, 0],
+            [0, 0, 8, 0, 0, 0, 0, 6, 0],
+            [0, 0, 0, 4, 1, 9, 0, 3, 0],
+            [0, 0, 0, 0, 0, 5, 4, 9, 0],
+            [0, 0, 0, 3, 0, 0, 0, 0, 6],
+            [8, 0, 0, 0, 2, 0, 0, 0, 4],
+            [1, 0, 0, 0, 6, 0, 0, 0, 5]
+        ]
+        // Add more levels if needed
+    ];
+
+    let currentLevel = 0;
+    let currentBoard = [];
+    const sudokuBoardElement = document.getElementById('sudoku-board');
+    const levelInfo = document.getElementById('level-info');
+    const messageElement = document.getElementById('message');
+    const checkButton = document.getElementById('checkButton');
+
+    // Initialize the game
+    function initializeGame() {
+        currentBoard = sudokuLevels[currentLevel];
+        generateSudokuBoard();
+        levelInfo.innerHTML = `Level: ${currentLevel + 1}`;
+        messageElement.innerHTML = '';
+        checkButton.disabled = false;
+    }
+
+    // Generate Sudoku board HTML
+    function generateSudokuBoard() {
+        sudokuBoardElement.innerHTML = ''; // Clear the board
+        for (let row = 0; row < 9; row++) {
+            for (let col = 0; col < 9; col++) {
+                const cellValue = currentBoard[row][col];
+                const cellElement = document.createElement('div');
+                cellElement.classList.add('sudoku-cell');
+                if (cellValue !== 0) {
+                    cellElement.classList.add('read-only');
+                    cellElement.textContent = cellValue;
+                } else {
+                    const inputElement = document.createElement('input');
+                    inputElement.maxLength = 1;
+                    inputElement.type = 'number';
+                    inputElement.addEventListener('input', () => {
+                        currentBoard[row][col] = parseInt(inputElement.value) || 0;
+                    });
+                    cellElement.appendChild(inputElement);
+                }
+                sudokuBoardElement.appendChild(cellElement);
+            }
+        }
+    }
+
+    // Check if the Sudoku board is valid
+    function checkSolution() {
+        let isValid = true;
+
+        // Check rows
+        for (let row = 0; row < 9; row++) {
+            const rowSet = new Set();
+            for (let col = 0; col < 9; col++) {
+                const value = currentBoard[row][col];
+                if (value !== 0 && rowSet.has(value)) {
+                    isValid = false;
+                    break;
+                }
+                rowSet.add(value);
+            }
+        }
+
+        // Check columns
+        for (let col = 0; col < 9; col++) {
+            const colSet = new Set();
+            for (let row = 0; row < 9; row++) {
+                const value = currentBoard[row][col];
+                if (value !== 0 && colSet.has(value)) {
+                    isValid = false;
+                    break;
+                }
+                colSet.add(value);
+            }
+        }
+
+        // Check 3x3 grids
+        for (let startRow = 0; startRow < 9; startRow += 3) {
+            for (let startCol = 0; startCol < 9; startCol += 3) {
+                const gridSet = new Set();
+                for (let row = startRow; row < startRow + 3; row++) {
+                    for (let col = startCol; col < startCol + 3; col++) {
+                        const value = currentBoard[row][col];
+                        if (value !== 0 && gridSet.has(value)) {
+                            isValid = false;
+                            break;
+                        }
+                        gridSet.add(value);
+                    }
+                }
+            }
+        }
+
+        // Display message
+        if (isValid) {
+            messageElement.innerHTML = 'Congratulations! You solved the Sudoku!';
+            checkButton.disabled = true;
+        } else {
+            messageElement.innerHTML = 'There are errors in your solution. Please try again.';
+        }
+    }
+
+    // Reset the game
+    function resetGame() {
+        currentLevel = (currentLevel + 1) % sudokuLevels.length;
+        initializeGame();
+    }
+
+    // Event listeners
+    checkButton.addEventListener('click', checkSolution);
+
+    // Start the game
+    initializeGame();
+
+</script>
+
+</body>
+</html>
