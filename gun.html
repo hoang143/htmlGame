@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2 Player Shooting Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #1c1c1c;
+        }
+        #game-board {
+            width: 800px;
+            height: 600px;
+            background-color: #333;
+            position: relative;
+            border: 5px solid #fff;
+            border-radius: 10px;
+        }
+        .player {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: green;
+            border-radius: 5px;
+        }
+        .player2 {
+            background-color: blue;
+        }
+        .bullet {
+            position: absolute;
+            width: 5px;
+            height: 10px;
+            background-color: red;
+            border-radius: 5px;
+        }
+        .wall {
+            position: absolute;
+            background-color: #999;
+        }
+        #score {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 20px;
+        }
+        #game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 30px;
+            display: none;
+            text-align: center;
+        }
+        #game-over button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: red;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #game-over button:hover {
+            background-color: darkred;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-board"></div>
+<div id="score">Player 1: 0 | Player 2: 0</div>
+<div id="game-over">
+    Game Over!<br>
+    <span id="winner">Player 1</span> Wins!
+    <br><button onclick="resetGame()">Restart</button>
+</div>
+
+<script>
+    // Game configuration
+    const board = document.getElementById('game-board');
+    const scoreDisplay = document.getElementById('score');
+    const gameOverDisplay = document.getElementById('game-over');
+    const winnerDisplay = document.getElementById('winner');
+
+    const boardWidth = 800;
+    const boardHeight = 600;
+    const playerSize = 40;
+    const bulletSize = 10;
+    const wallWidth = 100;
+    const wallHeight = 20;
+    const speed = 5;
+
+    let player1 = { x: 100, y: 100, score: 0, direction: 'RIGHT' };
+    let player2 = { x: 600, y: 100, score: 0, direction: 'LEFT' };
+    let bullets = [];
+    let walls = [];
+    let gameInterval;
+
+    // Initialize game elements
+    function initGame() {
+        player1 = { x: 100, y: 100, score: 0, direction: 'RIGHT' };
+        player2 = { x: 600, y: 100, score: 0, direction: 'LEFT' };
+        bullets = [];
+        walls = [
+            { x: 300, y: 250, width: wallWidth, height: wallHeight },
+            { x: 500, y: 400, width: wallWidth, height: wallHeight }
+        ];
+
+        gameOverDisplay.style.display = 'none';
+        scoreDisplay.textContent = `Player 1: ${player1.score} | Player 2: ${player2.score}`;
+
+        clearInterval(gameInterval);
+        gameInterval = setInterval(gameLoop, 1000 / 60);  // 60 FPS
+    }
+
+    // Draw the game elements
+    function drawGame() {
+        board.innerHTML = '';  // Clear board
+
+        // Draw players
+        const player1Element = document.createElement('div');
+        player1Element.classList.add('player');
+        player1Element.style.left = `${player1.x}px`;
+        player1Element.style.top = `${player1.y}px`;
+        board.appendChild(player1Element);
+
+        const player2Element = document.createElement('div');
+        player2Element.classList.add('player', 'player2');
+        player2Element.style.left = `${player2.x}px`;
+        player2Element.style.top = `${player2.y}px`;
+        board.appendChild(player2Element);
+
+        // Draw bullets
+        bullets.forEach(bullet => {
+            const bulletElement = document.createElement('div');
+            bulletElement.classList.add('bullet');
+            bulletElement.style.left = `${bullet.x}px`;
+            bulletElement.style.top = `${bullet.y}px`;
+            board.appendChild(bulletElement);
+        });
+
+        // Draw walls
+        walls.forEach(wall => {
+            const wallElement = document.createElement('div');
+            wallElement.classList.add('wall');
+            wallElement.style.left = `${wall.x}px`;
+            wallElement.style.top = `${wall.y}px`;
+            wallElement.style.width = `${wall.width}px`;
+            wallElement.style.height = `${wall.height}px`;
+            board.appendChild(wallElement);
+        });
+    }
+
+    // Update game logic
+    function gameLoop() {
+        movePlayers();
+        moveBullets();
+        checkCollisions();
+        drawGame();
+    }
+
+    // Move players based on their directions
+    function movePlayers() {
+        if (player1.direction === 'UP') player1.y -= speed;
+        if (player1.direction === 'DOWN') player1.y += speed;
+        if (player1.direction === 'LEFT') player1.x -= speed;
+        if (player1.direction === 'RIGHT') player1.x += speed;
+
+        if (player2.direction === 'UP') player2.y -= speed;
+        if (player2.direction === 'DOWN') player2.y += speed;
+        if (player2.direction === 'LEFT') player2.x -= speed;
+        if (player2.direction === 'RIGHT') player2.x += speed;
+    }
+
+    // Move bullets and check if they hit anyone
+    function moveBullets() {
+        bullets.forEach(bullet => {
+            if (bullet.direction === 'RIGHT') bullet.x += speed;
+            if (bullet.direction === 'LEFT') bullet.x -= speed;
+            if (bullet.direction === 'UP') bullet.y -= speed;
+            if (bullet.direction === 'DOWN') bullet.y += speed;
+
+            if (bullet.x < 0 || bullet.x > boardWidth || bullet.y < 0 || bullet.y > boardHeight) {
+                // Remove bullets that go off screen
+                bullet.remove = true;
+            }
+        });
+
+        // Remove bullets that are off screen or have hit something
+        bullets = bullets.filter(bullet => !bullet.remove);
+    }
+
+    // Check collisions with walls, bullets, and other players
+    function checkCollisions() {
+        // Collision with walls
+        walls.forEach(wall => {
+            if (checkCollision(player1, wall)) {
+                player1.x -= speed;
+                player1.y -= speed;
+            }
+            if (checkCollision(player2, wall)) {
+                player2.x -= speed;
+                player2.y -= speed;
+            }
+        });
+
+        // Collision with bullets
+        bullets.forEach(bullet => {
+            if (checkCollision(bullet, player1)) {
+                player2.score++;
+                resetGame();
+            }
+            if (checkCollision(bullet, player2)) {
+                player1.score++;
+                resetGame();
+            }
+        });
+    }
+
+    // Check if two objects collide
+    function checkCollision(obj1, obj2) {
+        return !(obj1.x + playerSize < obj2.x ||
+            obj1.x > obj2.x + obj2.width ||
+            obj1.y + playerSize < obj2.y ||
+            obj1.y > obj2.y + obj2.height);
+    }
+
+    // Handle key presses for player movement and shooting
+    function handleKeyPress(event) {
+        // Player 1 controls
+        if (event.key === 'w') player1.direction = 'UP';
+        if (event.key === 's') player1.direction = 'DOWN';
+        if (event.key === 'a') player1.direction = 'LEFT';
+        if (event.key === 'd') player1.direction = 'RIGHT';
+        if (event.key === ' ') fireBullet(player1.x, player1.y, 'RIGHT');
+
+        // Player 2 controls
+        if (event.key === 'ArrowUp') player2.direction = 'UP';
+        if (event.key === 'ArrowDown') player2.direction = 'DOWN';
+        if (event.key === 'ArrowLeft') player2.direction = 'LEFT';
+        if (event.key === 'ArrowRight') player2.direction = 'RIGHT';
+        if (event.key === 'Enter') fireBullet(player2.x, player2.y, 'LEFT');
+    }
+
+    // Fire a bullet
+    function fireBullet(x, y, direction) {
+        bullets.push({ x: x + (direction === 'LEFT' ? -bulletSize : playerSize),
+                      y: y + playerSize / 2 - bulletSize / 2,
+                      direction: direction });
+    }
+
+    // Display game over screen
+    function displayGameOver() {
+        clearInterval(gameInterval);
+        winnerDisplay.textContent = player1.score > player2.score ? 'Player 1' : 'Player 2';
+        gameOverDisplay.style.display = 'block';
+    }
+
+    // Restart the game
+    function resetGame() {
+        initGame();
+    }
+
+    // Start the game with selected mode
+    window.addEventListener('keydown', handleKeyPress);
+    initGame();
+
+</script>
+
+</body>
+</html>
