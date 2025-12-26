@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game - Modern Edition</title>
+    <title>2 Player Snake Game</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -17,19 +17,24 @@
         }
         #game-board {
             background-color: #222;
-            width: 500px;
-            height: 500px;
+            width: 600px;
+            height: 600px;
             position: relative;
             border: 5px solid #fff;
             border-radius: 10px;
         }
         .snake {
-            background-color: #00FF00;
             position: absolute;
-            transition: all 0.1s linear;
+            width: 20px;
+            height: 20px;
         }
         .food {
             background-color: #FF5733;
+            position: absolute;
+            border-radius: 50%;
+        }
+        .special-food {
+            background-color: #FFD700;
             position: absolute;
             border-radius: 50%;
         }
@@ -67,41 +72,46 @@
 <body>
 
 <div id="game-board"></div>
-<div id="score">Score: 0</div>
+<div id="score">Player 1 Score: 0 | Player 2 Score: 0</div>
 <div id="game-over">
     Game Over!
-    <br>Score: <span id="final-score">0</span>
+    <br>Player 1 Score: <span id="player1-score">0</span><br>Player 2 Score: <span id="player2-score">0</span>
     <br>
     <button onclick="resetGame()">Restart</button>
 </div>
 
 <script>
-    const boardSize = 500;
+    // Cấu hình trò chơi
+    const boardSize = 600;
     const snakeSize = 20;
     const board = document.getElementById('game-board');
-    let snake = [{ x: 240, y: 240 }];
+
+    let player1 = [{ x: 100, y: 100 }];
+    let player2 = [{ x: 400, y: 100 }];
     let food = { x: 0, y: 0 };
-    let direction = 'RIGHT';
-    let score = 0;
+    let specialFood = { x: 0, y: 0 };
+    let direction1 = 'RIGHT';
+    let direction2 = 'LEFT';
+    let score1 = 0;
+    let score2 = 0;
     let gameInterval;
-    let speed = 100; // Initial speed
     let gameOver = false;
 
-    // Draw the snake
-    function drawSnake() {
-        board.innerHTML = ''; // Clear board before drawing
-        snake.forEach((segment, index) => {
+    // Vẽ rắn
+    function drawSnake(player, snake) {
+        player.forEach((segment, index) => {
             const snakeSegment = document.createElement('div');
             snakeSegment.classList.add('snake');
             snakeSegment.style.width = `${snakeSize}px`;
             snakeSegment.style.height = `${snakeSize}px`;
             snakeSegment.style.left = `${segment.x}px`;
             snakeSegment.style.top = `${segment.y}px`;
+            player === player1 ? snakeSegment.style.backgroundColor = '#00FF00' : snakeSegment.style.backgroundColor = '#0000FF';
             board.appendChild(snakeSegment);
         });
     }
 
-    // Draw food
+    // Vẽ thức ăn
     function drawFood() {
         const foodElement = document.createElement('div');
         foodElement.classList.add('food');
@@ -112,110 +122,147 @@
         board.appendChild(foodElement);
     }
 
-    // Move the snake
-    function moveSnake() {
-        const head = { ...snake[0] };
+    // Vẽ thức ăn đặc biệt
+    function drawSpecialFood() {
+        const specialFoodElement = document.createElement('div');
+        specialFoodElement.classList.add('special-food');
+        specialFoodElement.style.width = `${snakeSize}px`;
+        specialFoodElement.style.height = `${snakeSize}px`;
+        specialFoodElement.style.left = `${specialFood.x}px`;
+        specialFoodElement.style.top = `${specialFood.y}px`;
+        board.appendChild(specialFoodElement);
+    }
 
-        switch (direction) {
+    // Di chuyển rắn
+    function moveSnake() {
+        const head1 = { ...player1[0] };
+        const head2 = { ...player2[0] };
+
+        // Điều khiển Player 1
+        switch (direction1) {
             case 'UP':
-                head.y -= snakeSize;
+                head1.y -= snakeSize;
                 break;
             case 'DOWN':
-                head.y += snakeSize;
+                head1.y += snakeSize;
                 break;
             case 'LEFT':
-                head.x -= snakeSize;
+                head1.x -= snakeSize;
                 break;
             case 'RIGHT':
-                head.x += snakeSize;
+                head1.x += snakeSize;
                 break;
         }
 
-        snake.unshift(head); // Add new head
-
-        // Check if the snake eats the food
-        if (head.x === food.x && head.y === food.y) {
-            score++;
-            document.getElementById('score').textContent = `Score: ${score}`;
-            spawnFood();
-            increaseSpeed();
-        } else {
-            snake.pop(); // Remove tail
+        // Điều khiển Player 2
+        switch (direction2) {
+            case 'UP':
+                head2.y -= snakeSize;
+                break;
+            case 'DOWN':
+                head2.y += snakeSize;
+                break;
+            case 'LEFT':
+                head2.x -= snakeSize;
+                break;
+            case 'RIGHT':
+                head2.x += snakeSize;
+                break;
         }
 
-        // Game over condition
-        if (head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize || collisionWithSelf(head)) {
+        player1.unshift(head1);
+        player2.unshift(head2);
+
+        // Kiểm tra ăn thức ăn
+        if (head1.x === food.x && head1.y === food.y) {
+            score1++;
+            document.getElementById('score').textContent = `Player 1 Score: ${score1} | Player 2 Score: ${score2}`;
+            spawnFood();
+        } else {
+            player1.pop();
+        }
+
+        if (head2.x === food.x && head2.y === food.y) {
+            score2++;
+            document.getElementById('score').textContent = `Player 1 Score: ${score1} | Player 2 Score: ${score2}`;
+            spawnFood();
+        } else {
+            player2.pop();
+        }
+
+        // Kiểm tra va chạm
+        if (head1.x < 0 || head1.x >= boardSize || head1.y < 0 || head1.y >= boardSize || collisionWithSelf(head1)) {
+            clearInterval(gameInterval);
+            gameOver = true;
+            displayGameOver();
+        }
+        if (head2.x < 0 || head2.x >= boardSize || head2.y < 0 || head2.y >= boardSize || collisionWithSelf(head2)) {
             clearInterval(gameInterval);
             gameOver = true;
             displayGameOver();
         }
 
-        drawSnake();
+        drawSnake(player1, player1);
+        drawSnake(player2, player2);
         drawFood();
+        drawSpecialFood();
     }
 
-    // Check if the snake collides with itself
+    // Kiểm tra va chạm với chính mình
     function collisionWithSelf(head) {
-        return snake.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y);
+        return player1.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y);
     }
 
-    // Spawn food randomly
+    // Tạo thức ăn ngẫu nhiên
     function spawnFood() {
         food.x = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
         food.y = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
+
+        specialFood.x = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
+        specialFood.y = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
     }
 
-    // Increase speed of the snake
-    function increaseSpeed() {
-        if (speed > 50) {
-            speed -= 10;
-            clearInterval(gameInterval);
-            gameInterval = setInterval(moveSnake, speed);
-        }
-    }
-
-    // Handle keypress for controlling the snake
+    // Xử lý các phím điều khiển
     function handleKeyPress(event) {
-        switch (event.key) {
-            case 'ArrowUp':
-                if (direction !== 'DOWN') direction = 'UP';
-                break;
-            case 'ArrowDown':
-                if (direction !== 'UP') direction = 'DOWN';
-                break;
-            case 'ArrowLeft':
-                if (direction !== 'RIGHT') direction = 'LEFT';
-                break;
-            case 'ArrowRight':
-                if (direction !== 'LEFT') direction = 'RIGHT';
-                break;
-        }
+        // Player 1 điều khiển
+        if (event.key === 'w' && direction1 !== 'DOWN') direction1 = 'UP';
+        if (event.key === 's' && direction1 !== 'UP') direction1 = 'DOWN';
+        if (event.key === 'a' && direction1 !== 'RIGHT') direction1 = 'LEFT';
+        if (event.key === 'd' && direction1 !== 'LEFT') direction1 = 'RIGHT';
+
+        // Player 2 điều khiển
+        if (event.key === 'ArrowUp' && direction2 !== 'DOWN') direction2 = 'UP';
+        if (event.key === 'ArrowDown' && direction2 !== 'UP') direction2 = 'DOWN';
+        if (event.key === 'ArrowLeft' && direction2 !== 'RIGHT') direction2 = 'LEFT';
+        if (event.key === 'ArrowRight' && direction2 !== 'LEFT') direction2 = 'RIGHT';
     }
 
-    // Display Game Over screen
+    // Hiển thị màn hình game over
     function displayGameOver() {
-        document.getElementById('final-score').textContent = score;
+        document.getElementById('player1-score').textContent = score1;
+        document.getElementById('player2-score').textContent = score2;
         document.getElementById('game-over').style.display = 'block';
     }
 
-    // Reset the game
+    // Khởi động lại trò chơi
     function resetGame() {
-        snake = [{ x: 240, y: 240 }];
-        direction = 'RIGHT';
-        score = 0;
-        speed = 100;
-        document.getElementById('score').textContent = `Score: ${score}`;
-        spawnFood();
+        player1 = [{ x: 100, y: 100 }];
+        player2 = [{ x: 400, y: 100 }];
+        direction1 = 'RIGHT';
+        direction2 = 'LEFT';
+        score1 = 0;
+        score2 = 0;
+        document.getElementById('score').textContent = `Player 1 Score: ${score1} | Player 2 Score: ${score2}`;
         gameOver = false;
         document.getElementById('game-over').style.display = 'none';
-        gameInterval = setInterval(moveSnake, speed);
+        spawnFood();
+        gameInterval = setInterval(moveSnake, 100);
     }
 
-    // Initialize game
+    // Khởi tạo trò chơi
     window.addEventListener('keydown', handleKeyPress);
     spawnFood();
-    gameInterval = setInterval(moveSnake, speed);
-
+    gameInterval = setInterval(moveSnake, 100);
 </script>
 
 </body>
