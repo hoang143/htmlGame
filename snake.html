@@ -3,54 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game</title>
+    <title>Snake Game - Modern Edition</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: #1c1c1c;
+            color: white;
         }
         #game-board {
-            background-color: #000;
-            width: 400px;
-            height: 400px;
+            background-color: #222;
+            width: 500px;
+            height: 500px;
             position: relative;
-            border: 2px solid #333;
+            border: 5px solid #fff;
+            border-radius: 10px;
         }
         .snake {
             background-color: #00FF00;
             position: absolute;
+            transition: all 0.1s linear;
         }
         .food {
-            background-color: #FF0000;
+            background-color: #FF5733;
             position: absolute;
+            border-radius: 50%;
+        }
+        #score {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            z-index: 100;
+        }
+        #game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            color: #FF5733;
+            display: none;
+            text-align: center;
+        }
+        #game-over button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #FF5733;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #game-over button:hover {
+            background-color: #FF3D2F;
         }
     </style>
 </head>
 <body>
 
 <div id="game-board"></div>
+<div id="score">Score: 0</div>
+<div id="game-over">
+    Game Over!
+    <br>Score: <span id="final-score">0</span>
+    <br>
+    <button onclick="resetGame()">Restart</button>
+</div>
 
 <script>
-    // Kích thước và cấu hình của trò chơi
-    const boardSize = 400;
+    const boardSize = 500;
     const snakeSize = 20;
     const board = document.getElementById('game-board');
-
-    let snake = [{ x: 100, y: 100 }];
+    let snake = [{ x: 240, y: 240 }];
     let food = { x: 0, y: 0 };
     let direction = 'RIGHT';
     let score = 0;
     let gameInterval;
-    
-    // Hàm vẽ rắn lên màn hình
+    let speed = 100; // Initial speed
+    let gameOver = false;
+
+    // Draw the snake
     function drawSnake() {
-        board.innerHTML = ''; // Xóa tất cả các phần tử trước khi vẽ lại
-        snake.forEach(segment => {
+        board.innerHTML = ''; // Clear board before drawing
+        snake.forEach((segment, index) => {
             const snakeSegment = document.createElement('div');
             snakeSegment.classList.add('snake');
             snakeSegment.style.width = `${snakeSize}px`;
@@ -61,7 +101,7 @@
         });
     }
 
-    // Hàm vẽ thức ăn
+    // Draw food
     function drawFood() {
         const foodElement = document.createElement('div');
         foodElement.classList.add('food');
@@ -72,9 +112,10 @@
         board.appendChild(foodElement);
     }
 
-    // Hàm di chuyển rắn
+    // Move the snake
     function moveSnake() {
         const head = { ...snake[0] };
+
         switch (direction) {
             case 'UP':
                 head.y -= snakeSize;
@@ -90,39 +131,50 @@
                 break;
         }
 
-        snake.unshift(head); // Thêm đầu rắn vào
+        snake.unshift(head); // Add new head
+
+        // Check if the snake eats the food
         if (head.x === food.x && head.y === food.y) {
-            // Rắn ăn thức ăn, tăng điểm và tạo thức ăn mới
             score++;
-            document.title = `Snake Game - Score: ${score}`;
+            document.getElementById('score').textContent = `Score: ${score}`;
             spawnFood();
+            increaseSpeed();
         } else {
-            snake.pop(); // Xóa đuôi rắn nếu không ăn thức ăn
+            snake.pop(); // Remove tail
         }
 
-        // Kiểm tra va chạm với bản đồ (ra ngoài màn hình hoặc đụng vào chính mình)
+        // Game over condition
         if (head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize || collisionWithSelf(head)) {
             clearInterval(gameInterval);
-            alert('Game Over! Your Score: ' + score);
-            resetGame();
+            gameOver = true;
+            displayGameOver();
         }
 
         drawSnake();
         drawFood();
     }
 
-    // Hàm kiểm tra rắn có va chạm với chính mình không
+    // Check if the snake collides with itself
     function collisionWithSelf(head) {
         return snake.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y);
     }
 
-    // Hàm tạo thức ăn ngẫu nhiên trên màn hình
+    // Spawn food randomly
     function spawnFood() {
         food.x = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
         food.y = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
     }
 
-    // Hàm xử lý các phím điều khiển
+    // Increase speed of the snake
+    function increaseSpeed() {
+        if (speed > 50) {
+            speed -= 10;
+            clearInterval(gameInterval);
+            gameInterval = setInterval(moveSnake, speed);
+        }
+    }
+
+    // Handle keypress for controlling the snake
     function handleKeyPress(event) {
         switch (event.key) {
             case 'ArrowUp':
@@ -140,20 +192,30 @@
         }
     }
 
-    // Hàm khởi động lại trò chơi
-    function resetGame() {
-        snake = [{ x: 100, y: 100 }];
-        direction = 'RIGHT';
-        score = 0;
-        document.title = `Snake Game - Score: ${score}`;
-        spawnFood();
-        gameInterval = setInterval(moveSnake, 100);
+    // Display Game Over screen
+    function displayGameOver() {
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('game-over').style.display = 'block';
     }
 
-    // Khởi tạo trò chơi
+    // Reset the game
+    function resetGame() {
+        snake = [{ x: 240, y: 240 }];
+        direction = 'RIGHT';
+        score = 0;
+        speed = 100;
+        document.getElementById('score').textContent = `Score: ${score}`;
+        spawnFood();
+        gameOver = false;
+        document.getElementById('game-over').style.display = 'none';
+        gameInterval = setInterval(moveSnake, speed);
+    }
+
+    // Initialize game
     window.addEventListener('keydown', handleKeyPress);
     spawnFood();
-    gameInterval = setInterval(moveSnake, 100);
+    gameInterval = setInterval(moveSnake, speed);
+
 </script>
 
 </body>
