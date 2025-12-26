@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click the Box Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            background-color: #e0e0e0;
+            border: 2px solid #333;
+        }
+        .box {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: red;
+            cursor: pointer;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="score">Score: 0</div>
+    <div id="click-box" class="box"></div>
+</div>
+
+<script>
+    let score = 0;
+    const scoreElement = document.getElementById("score");
+    const boxElement = document.getElementById("click-box");
+    const gameContainer = document.getElementById("game-container");
+
+    // Hàm để thay đổi vị trí của hộp
+    function moveBox() {
+        const maxX = gameContainer.clientWidth - boxElement.offsetWidth;
+        const maxY = gameContainer.clientHeight - boxElement.offsetHeight;
+
+        const randomX = Math.random() * maxX;
+        const randomY = Math.random() * maxY;
+
+        boxElement.style.left = `${randomX}px`;
+        boxElement.style.top = `${randomY}px`;
+    }
+
+    // Hàm xử lý khi người chơi nhấn vào hộp
+    boxElement.addEventListener("click", () => {
+        score++;
+        scoreElement.textContent = `Score: ${score}`;
+        moveBox();  // Di chuyển hộp sau mỗi lần nhấn
+    });
+
+    // Di chuyển hộp khi trang tải
+    moveBox();
+</script>
+
+</body>
+</html>
