@@ -1,300 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #1c1c1c;
-            color: white;
-            flex-direction: column;
-        }
-        #game-board {
-            background-color: #222;
-            width: 600px;
-            height: 600px;
-            position: relative;
-            border: 5px solid #fff;
-            border-radius: 10px;
-            display: none;
-        }
-        .snake {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-        }
-        .food {
-            background-color: #FF5733;
-            position: absolute;
-            border-radius: 50%;
-        }
-        .special-food {
-            background-color: #FFD700;
-            position: absolute;
-            border-radius: 50%;
-        }
-        #score {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            font-size: 24px;
-            z-index: 100;
-        }
-        #game-over {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 30px;
-            color: #FF5733;
-            display: none;
-            text-align: center;
-        }
-        #game-over button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #FF5733;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        #game-over button:hover {
-            background-color: #FF3D2F;
-        }
-        #menu {
-            text-align: center;
-        }
-        #menu button {
-            padding: 15px 30px;
-            background-color: #FF5733;
-            border: none;
-            color: white;
-            font-size: 20px;
-            margin: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        #menu button:hover {
-            background-color: #FF3D2F;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Snake Game</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    background: #1c1c1c;
+    color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#menu button {
+    padding: 15px 30px;
+    font-size: 20px;
+    margin: 10px;
+    cursor: pointer;
+}
+
+#game-board {
+    width: 600px;
+    height: 600px;
+    background: #222;
+    border: 5px solid white;
+    position: relative;
+    display: none;
+}
+
+.snake {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+}
+
+.food {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: #ff5733;
+    border-radius: 50%;
+}
+
+#score {
+    margin: 10px;
+    font-size: 20px;
+}
+
+#game-over {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-size: 30px;
+}
+#game-over button {
+    margin-top: 20px;
+    padding: 10px 25px;
+    font-size: 18px;
+}
+</style>
 </head>
+
 <body>
 
 <div id="menu">
-    <h1>Welcome to Snake Game</h1>
-    <button onclick="startGame(1)">Play Single Player</button>
-    <button onclick="startGame(2)">Play Two Players</button>
+    <h1>Snake Game</h1>
+    <button onclick="startGame(1)">Single Player</button>
+    <button onclick="startGame(2)">Two Players</button>
 </div>
 
+<div id="score">P1: 0 | P2: 0</div>
 <div id="game-board"></div>
-<div id="score">Player 1 Score: 0 | Player 2 Score: 0</div>
+
 <div id="game-over">
-    Game Over!
-    <br>Player 1 Score: <span id="player1-score">0</span><br>Player 2 Score: <span id="player2-score">0</span>
-    <br>
+    <div id="result"></div>
     <button onclick="resetGame()">Restart</button>
 </div>
 
 <script>
-    // Cấu hình trò chơi
-    const boardSize = 600;
-    const snakeSize = 20;
-    const board = document.getElementById('game-board');
-    let snake = [{ x: 100, y: 100 }];
-    let snake2 = [{ x: 400, y: 100 }];
-    let food = { x: 0, y: 0 };
-    let specialFood = { x: 0, y: 0 };
-    let direction = 'RIGHT';
-    let direction2 = 'LEFT';
-    let score1 = 0;
-    let score2 = 0;
-    let gameInterval;
-    let gameOver = false;
-    let gameMode = 1; // 1 for Single Player, 2 for Two Players
+/* ================= CONFIG ================= */
+const BOARD_SIZE = 600;
+const CELL = 20;
+const SPEED = 100;
 
-    // Vẽ rắn
-    function drawSnake() {
-        snake.forEach((segment, index) => {
-            const snakeSegment = document.createElement('div');
-            snakeSegment.classList.add('snake');
-            snakeSegment.style.width = `${snakeSize}px`;
-            snakeSegment.style.height = `${snakeSize}px`;
-            snakeSegment.style.left = `${segment.x}px`;
-            snakeSegment.style.top = `${segment.y}px`;
-            snakeSegment.style.backgroundColor = '#00FF00';
-            board.appendChild(snakeSegment);
-        });
+/* ================= STATE ================= */
+let gameMode = 1;
+let gameInterval = null;
+let gameOver = false;
+
+let snake1, snake2;
+let dir1, dir2;
+let score1, score2;
+let food;
+
+/* ================= DOM ================= */
+const board = document.getElementById("game-board");
+const scoreEl = document.getElementById("score");
+const gameOverEl = document.getElementById("game-over");
+const resultEl = document.getElementById("result");
+
+/* ================= INIT ================= */
+function initGame() {
+    snake1 = [{x: 100, y: 100}];
+    snake2 = [{x: 400, y: 100}];
+    dir1 = "RIGHT";
+    dir2 = "LEFT";
+    score1 = 0;
+    score2 = 0;
+    gameOver = false;
+    spawnFood();
+    updateScore();
+}
+
+/* ================= GAME LOOP ================= */
+function gameLoop() {
+    if (gameOver) return;
+
+    clearBoard();
+
+    moveSnake(snake1, dir1, 1);
+    if (gameMode === 2) {
+        moveSnake(snake2, dir2, 2);
     }
 
-    // Vẽ rắn 2
-    function drawSnake2() {
-        snake2.forEach((segment, index) => {
-            const snakeSegment = document.createElement('div');
-            snakeSegment.classList.add('snake');
-            snakeSegment.style.width = `${snakeSize}px`;
-            snakeSegment.style.height = `${snakeSize}px`;
-            snakeSegment.style.left = `${segment.x}px`;
-            snakeSegment.style.top = `${segment.y}px`;
-            snakeSegment.style.backgroundColor = '#0000FF';
-            board.appendChild(snakeSegment);
-        });
+    drawFood();
+    drawSnake(snake1, "#00ff00");
+    if (gameMode === 2) drawSnake(snake2, "#00aaff");
+}
+
+/* ================= MOVE ================= */
+function moveSnake(snake, dir, player) {
+    const head = {...snake[0]};
+
+    if (dir === "UP") head.y -= CELL;
+    if (dir === "DOWN") head.y += CELL;
+    if (dir === "LEFT") head.x -= CELL;
+    if (dir === "RIGHT") head.x += CELL;
+
+    // collision
+    if (isCollision(head, snake)) {
+        endGame();
+        return;
     }
 
-    // Vẽ thức ăn
-    function drawFood() {
-        const foodElement = document.createElement('div');
-        foodElement.classList.add('food');
-        foodElement.style.width = `${snakeSize}px`;
-        foodElement.style.height = `${snakeSize}px`;
-        foodElement.style.left = `${food.x}px`;
-        foodElement.style.top = `${food.y}px`;
-        board.appendChild(foodElement);
-    }
+    snake.unshift(head);
 
-    // Vẽ thức ăn đặc biệt
-    function drawSpecialFood() {
-        const specialFoodElement = document.createElement('div');
-        specialFoodElement.classList.add('special-food');
-        specialFoodElement.style.width = `${snakeSize}px`;
-        specialFoodElement.style.height = `${snakeSize}px`;
-        specialFoodElement.style.left = `${specialFood.x}px`;
-        specialFoodElement.style.top = `${specialFood.y}px`;
-        board.appendChild(specialFoodElement);
-    }
-
-    // Di chuyển rắn
-    function moveSnake() {
-        const head = { ...snake[0] };
-
-        switch (direction) {
-            case 'UP': head.y -= snakeSize; break;
-            case 'DOWN': head.y += snakeSize; break;
-            case 'LEFT': head.x -= snakeSize; break;
-            case 'RIGHT': head.x += snakeSize; break;
-        }
-
-        snake.unshift(head);
-
-        if (head.x === food.x && head.y === food.y) {
-            score1++;
-            document.getElementById('score').textContent = `Player 1 Score: ${score1} | Player 2 Score: ${score2}`;
-            spawnFood();
-        } else {
-            snake.pop();
-        }
-
-        if (head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize || collisionWithSelf(head)) {
-            gameOver = true;
-            displayGameOver();
-        }
-
-        drawSnake();
-        drawFood();
-        drawSpecialFood();
-    }
-
-    // Di chuyển rắn 2
-    function moveSnake2() {
-        const head = { ...snake2[0] };
-
-        switch (direction2) {
-            case 'UP': head.y -= snakeSize; break;
-            case 'DOWN': head.y += snakeSize; break;
-            case 'LEFT': head.x -= snakeSize; break;
-            case 'RIGHT': head.x += snakeSize; break;
-        }
-
-        snake2.unshift(head);
-
-        if (head.x === food.x && head.y === food.y) {
-            score2++;
-            document.getElementById('score').textContent = `Player 1 Score: ${score1} | Player 2 Score: ${score2}`;
-            spawnFood();
-        } else {
-            snake2.pop();
-        }
-
-        if (head.x < 0 || head.x >= boardSize || head.y < 0 || head.y >= boardSize || collisionWithSelf(head)) {
-            gameOver = true;
-            displayGameOver();
-        }
-
-        drawSnake2();
-        drawFood();
-        drawSpecialFood();
-    }
-
-    // Kiểm tra va chạm với chính mình
-    function collisionWithSelf(head) {
-        return snake.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y);
-    }
-
-    // Tạo thức ăn ngẫu nhiên
-    function spawnFood() {
-        food.x = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
-        food.y = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
-        specialFood.x = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
-        specialFood.y = Math.floor(Math.random() * (boardSize / snakeSize)) * snakeSize;
-    }
-
-    // Xử lý các phím điều khiển
-    function handleKeyPress(event) {
-        if (event.key === 'w' && direction !== 'DOWN') direction = 'UP';
-        if (event.key === 's' && direction !== 'UP') direction = 'DOWN';
-        if (event.key === 'a' && direction !== 'RIGHT') direction = 'LEFT';
-        if (event.key === 'd' && direction !== 'LEFT') direction = 'RIGHT';
-
-        if (event.key === 'ArrowUp' && direction2 !== 'DOWN') direction2 = 'UP';
-        if (event.key === 'ArrowDown' && direction2 !== 'UP') direction2 = 'DOWN';
-        if (event.key === 'ArrowLeft' && direction2 !== 'RIGHT') direction2 = 'LEFT';
-        if (event.key === 'ArrowRight' && direction2 !== 'LEFT') direction2 = 'RIGHT';
-    }
-
-    // Hiển thị màn hình game over
-    function displayGameOver() {
-        document.getElementById('player1-score').textContent = score1;
-        document.getElementById('player2-score').textContent = score2;
-        document.getElementById('game-over').style.display = 'block';
-    }
-
-    // Khởi động lại trò chơi
-    function resetGame() {
-        snake = [{ x: 100, y: 100 }];
-        snake2 = [{ x: 400, y: 100 }];
-        direction = 'RIGHT';
-        direction2 = 'LEFT';
-        score1 = 0;
-        score2 = 0;
-        document.getElementById('score').textContent = `Player 1 Score: ${score1} | Player 2 Score: ${score2}`;
-        gameOver = false;
-        document.getElementById('game-over').style.display = 'none';
+    if (head.x === food.x && head.y === food.y) {
+        if (player === 1) score1++;
+        else score2++;
         spawnFood();
-        gameInterval = setInterval(moveSnake, 100);
-        if (gameMode === 2) setInterval(moveSnake2, 100);
+        updateScore();
+    } else {
+        snake.pop();
     }
+}
 
-    // Bắt đầu trò chơi
-    function startGame(mode) {
-        gameMode = mode;
-        document.getElementById('menu').style.display = 'none';
-        document.getElementById('game-board').style.display = 'block';
-        spawnFood();
-        gameInterval = setInterval(moveSnake, 100);
-        if (gameMode === 2) setInterval(moveSnake2, 100);
+/* ================= COLLISION ================= */
+function isCollision(head, snake) {
+    // wall
+    if (
+        head.x < 0 || head.x >= BOARD_SIZE ||
+        head.y < 0 || head.y >= BOARD_SIZE
+    ) return true;
+
+    // self
+    for (let i = 1; i < snake.length; i++) {
+        if (head.x === snake[i].x && head.y === snake[i].y) {
+            return true;
+        }
     }
+    return false;
+}
 
-    // Khởi tạo trò chơi
-    window.addEventListener('keydown', handleKeyPress);
+/* ================= DRAW ================= */
+function clearBoard() {
+    board.innerHTML = "";
+}
 
+function drawSnake(snake, color) {
+    snake.forEach(seg => {
+        const d = document.createElement("div");
+        d.className = "snake";
+        d.style.background = color;
+        d.style.left = seg.x + "px";
+        d.style.top = seg.y + "px";
+        board.appendChild(d);
+    });
+}
+
+function drawFood() {
+    const f = document.createElement("div");
+    f.className = "food";
+    f.style.left = food.x + "px";
+    f.style.top = food.y + "px";
+    board.appendChild(f);
+}
+
+/* ================= FOOD ================= */
+function spawnFood() {
+    food = {
+        x: Math.floor(Math.random() * (BOARD_SIZE / CELL)) * CELL,
+        y: Math.floor(Math.random() * (BOARD_SIZE / CELL)) * CELL
+    };
+}
+
+/* ================= UI ================= */
+function updateScore() {
+    scoreEl.textContent = `P1: ${score1} | P2: ${score2}`;
+}
+
+function endGame() {
+    gameOver = true;
+    clearInterval(gameInterval);
+    resultEl.innerHTML = `
+        Game Over<br/>
+        Player 1: ${score1}<br/>
+        Player 2: ${score2}
+    `;
+    gameOverEl.style.display = "flex";
+}
+
+/* ================= CONTROL ================= */
+window.addEventListener("keydown", e => {
+    if (e.key === "w" && dir1 !== "DOWN") dir1 = "UP";
+    if (e.key === "s" && dir1 !== "UP") dir1 = "DOWN";
+    if (e.key === "a" && dir1 !== "RIGHT") dir1 = "LEFT";
+    if (e.key === "d" && dir1 !== "LEFT") dir1 = "RIGHT";
+
+    if (e.key === "ArrowUp" && dir2 !== "DOWN") dir2 = "UP";
+    if (e.key === "ArrowDown" && dir2 !== "UP") dir2 = "DOWN";
+    if (e.key === "ArrowLeft" && dir2 !== "RIGHT") dir2 = "LEFT";
+    if (e.key === "ArrowRight" && dir2 !== "LEFT") dir2 = "RIGHT";
+});
+
+/* ================= START / RESET ================= */
+function startGame(mode) {
+    gameMode = mode;
+    document.getElementById("menu").style.display = "none";
+    board.style.display = "block";
+    gameOverEl.style.display = "none";
+    initGame();
+    gameInterval = setInterval(gameLoop, SPEED);
+}
+
+function resetGame() {
+    clearInterval(gameInterval);
+    startGame(gameMode);
+}
 </script>
 
 </body>
