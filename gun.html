@@ -3,278 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2 Player Shooting Game</title>
+    <title>Monster Shooting Game</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #1c1c1c;
+            margin: 0;
+            background-color: #2e2e2e;
+            color: white;
         }
         #game-board {
-            width: 800px;
-            height: 600px;
-            background-color: #333;
+            width: 600px;
+            height: 400px;
+            background-color: #1c1c1c;
             position: relative;
             border: 5px solid #fff;
             border-radius: 10px;
         }
         .player {
             position: absolute;
-            width: 40px;
-            height: 40px;
-            background-color: green;
+            bottom: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #00FF00;
             border-radius: 5px;
-        }
-        .player2 {
-            background-color: blue;
         }
         .bullet {
             position: absolute;
             width: 5px;
-            height: 10px;
+            height: 15px;
             background-color: red;
             border-radius: 5px;
         }
-        .wall {
+        .monster {
             position: absolute;
-            background-color: #999;
+            width: 40px;
+            height: 40px;
+            background-color: #FF0000;
+            border-radius: 5px;
         }
         #score {
             position: fixed;
             top: 20px;
             left: 20px;
-            color: white;
             font-size: 20px;
+            z-index: 100;
         }
         #game-over {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
             font-size: 30px;
+            color: #FF5733;
             display: none;
             text-align: center;
         }
         #game-over button {
             margin-top: 20px;
             padding: 10px 20px;
-            background-color: red;
-            color: white;
-            font-size: 18px;
+            background-color: #FF5733;
             border: none;
-            border-radius: 5px;
+            color: white;
             cursor: pointer;
+            border-radius: 5px;
         }
         #game-over button:hover {
-            background-color: darkred;
+            background-color: #FF3D2F;
         }
     </style>
 </head>
 <body>
 
 <div id="game-board"></div>
-<div id="score">Player 1: 0 | Player 2: 0</div>
+<div id="score">Score: 0</div>
 <div id="game-over">
-    Game Over!<br>
-    <span id="winner">Player 1</span> Wins!
-    <br><button onclick="resetGame()">Restart</button>
+    Game Over!
+    <br>Score: <span id="final-score">0</span>
+    <br>
+    <button onclick="resetGame()">Restart</button>
 </div>
 
 <script>
-    // Game configuration
     const board = document.getElementById('game-board');
     const scoreDisplay = document.getElementById('score');
     const gameOverDisplay = document.getElementById('game-over');
-    const winnerDisplay = document.getElementById('winner');
+    const finalScoreDisplay = document.getElementById('final-score');
 
-    const boardWidth = 800;
-    const boardHeight = 600;
-    const playerSize = 40;
-    const bulletSize = 10;
-    const wallWidth = 100;
-    const wallHeight = 20;
-    const speed = 5;
-
-    let player1 = { x: 100, y: 100, score: 0, direction: 'RIGHT' };
-    let player2 = { x: 600, y: 100, score: 0, direction: 'LEFT' };
+    const boardWidth = 600;
+    const boardHeight = 400;
+    const playerSize = 50;
+    const bulletSize = 15;
+    const monsterSize = 40;
+    const playerSpeed = 5;
+    const bulletSpeed = 5;
+    const monsterSpeed = 2;
+    let player = { x: 275, y: 350, width: playerSize, height: playerSize };
     let bullets = [];
-    let walls = [];
+    let monsters = [];
+    let score = 0;
     let gameInterval;
+    let gameOver = false;
 
-    // Initialize game elements
-    function initGame() {
-        player1 = { x: 100, y: 100, score: 0, direction: 'RIGHT' };
-        player2 = { x: 600, y: 100, score: 0, direction: 'LEFT' };
-        bullets = [];
-        walls = [
-            { x: 300, y: 250, width: wallWidth, height: wallHeight },
-            { x: 500, y: 400, width: wallWidth, height: wallHeight }
-        ];
-
-        gameOverDisplay.style.display = 'none';
-        scoreDisplay.textContent = `Player 1: ${player1.score} | Player 2: ${player2.score}`;
-
-        clearInterval(gameInterval);
-        gameInterval = setInterval(gameLoop, 1000 / 60);  // 60 FPS
+    // Draw player
+    function drawPlayer() {
+        const playerElement = document.createElement('div');
+        playerElement.classList.add('player');
+        playerElement.style.left = `${player.x}px`;
+        playerElement.style.bottom = `${player.y}px`;
+        board.appendChild(playerElement);
     }
 
-    // Draw the game elements
-    function drawGame() {
-        board.innerHTML = '';  // Clear board
-
-        // Draw players
-        const player1Element = document.createElement('div');
-        player1Element.classList.add('player');
-        player1Element.style.left = `${player1.x}px`;
-        player1Element.style.top = `${player1.y}px`;
-        board.appendChild(player1Element);
-
-        const player2Element = document.createElement('div');
-        player2Element.classList.add('player', 'player2');
-        player2Element.style.left = `${player2.x}px`;
-        player2Element.style.top = `${player2.y}px`;
-        board.appendChild(player2Element);
-
-        // Draw bullets
+    // Draw bullets
+    function drawBullets() {
         bullets.forEach(bullet => {
             const bulletElement = document.createElement('div');
             bulletElement.classList.add('bullet');
             bulletElement.style.left = `${bullet.x}px`;
-            bulletElement.style.top = `${bullet.y}px`;
+            bulletElement.style.bottom = `${bullet.y}px`;
             board.appendChild(bulletElement);
         });
+    }
 
-        // Draw walls
-        walls.forEach(wall => {
-            const wallElement = document.createElement('div');
-            wallElement.classList.add('wall');
-            wallElement.style.left = `${wall.x}px`;
-            wallElement.style.top = `${wall.y}px`;
-            wallElement.style.width = `${wall.width}px`;
-            wallElement.style.height = `${wall.height}px`;
-            board.appendChild(wallElement);
+    // Draw monsters
+    function drawMonsters() {
+        monsters.forEach(monster => {
+            const monsterElement = document.createElement('div');
+            monsterElement.classList.add('monster');
+            monsterElement.style.left = `${monster.x}px`;
+            monsterElement.style.top = `${monster.y}px`;
+            board.appendChild(monsterElement);
         });
     }
 
-    // Update game logic
-    function gameLoop() {
-        movePlayers();
-        moveBullets();
-        checkCollisions();
-        drawGame();
+    // Move player based on arrow keys
+    function movePlayer() {
+        if (player.x < 0) player.x = 0;
+        if (player.x + playerSize > boardWidth) player.x = boardWidth - playerSize;
+
+        if (player.y < 0) player.y = 0;
+        if (player.y + playerSize > boardHeight) player.y = boardHeight - playerSize;
     }
 
-    // Move players based on their directions
-    function movePlayers() {
-        if (player1.direction === 'UP') player1.y -= speed;
-        if (player1.direction === 'DOWN') player1.y += speed;
-        if (player1.direction === 'LEFT') player1.x -= speed;
-        if (player1.direction === 'RIGHT') player1.x += speed;
-
-        if (player2.direction === 'UP') player2.y -= speed;
-        if (player2.direction === 'DOWN') player2.y += speed;
-        if (player2.direction === 'LEFT') player2.x -= speed;
-        if (player2.direction === 'RIGHT') player2.x += speed;
-    }
-
-    // Move bullets and check if they hit anyone
+    // Move bullets
     function moveBullets() {
         bullets.forEach(bullet => {
-            if (bullet.direction === 'RIGHT') bullet.x += speed;
-            if (bullet.direction === 'LEFT') bullet.x -= speed;
-            if (bullet.direction === 'UP') bullet.y -= speed;
-            if (bullet.direction === 'DOWN') bullet.y += speed;
-
-            if (bullet.x < 0 || bullet.x > boardWidth || bullet.y < 0 || bullet.y > boardHeight) {
-                // Remove bullets that go off screen
-                bullet.remove = true;
-            }
+            bullet.y += bulletSpeed;
+            if (bullet.y > boardHeight) bullet.remove = true; // Remove bullets that go off screen
         });
 
-        // Remove bullets that are off screen or have hit something
+        // Remove bullets that are off screen
         bullets = bullets.filter(bullet => !bullet.remove);
     }
 
-    // Check collisions with walls, bullets, and other players
-    function checkCollisions() {
-        // Collision with walls
-        walls.forEach(wall => {
-            if (checkCollision(player1, wall)) {
-                player1.x -= speed;
-                player1.y -= speed;
-            }
-            if (checkCollision(player2, wall)) {
-                player2.x -= speed;
-                player2.y -= speed;
-            }
-        });
+    // Move monsters
+    function moveMonsters() {
+        monsters.forEach(monster => {
+            monster.y += monsterSpeed;
 
-        // Collision with bullets
-        bullets.forEach(bullet => {
-            if (checkCollision(bullet, player1)) {
-                player2.score++;
-                resetGame();
-            }
-            if (checkCollision(bullet, player2)) {
-                player1.score++;
-                resetGame();
+            if (monster.y > boardHeight) {
+                // Reset monster position when it goes off screen
+                monster.y = 0;
+                monster.x = Math.floor(Math.random() * (boardWidth - monsterSize));
             }
         });
     }
 
-    // Check if two objects collide
-    function checkCollision(obj1, obj2) {
-        return !(obj1.x + playerSize < obj2.x ||
-            obj1.x > obj2.x + obj2.width ||
-            obj1.y + playerSize < obj2.y ||
-            obj1.y > obj2.y + obj2.height);
+    // Check collisions between bullets and monsters
+    function checkCollisions() {
+        bullets.forEach(bullet => {
+            monsters.forEach((monster, index) => {
+                if (bullet.x < monster.x + monsterSize &&
+                    bullet.x + bulletSize > monster.x &&
+                    bullet.y < monster.y + monsterSize &&
+                    bullet.y + bulletSize > monster.y) {
+
+                    // Bullet hits monster
+                    monsters.splice(index, 1); // Remove monster
+                    bullets = bullets.filter(b => b !== bullet); // Remove bullet
+                    score++;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    spawnMonster(); // Spawn new monster
+                }
+            });
+        });
+    }
+
+    // Spawn new monsters at random positions
+    function spawnMonster() {
+        let monster = {
+            x: Math.floor(Math.random() * (boardWidth - monsterSize)),
+            y: 0,
+        };
+        monsters.push(monster);
     }
 
     // Handle key presses for player movement and shooting
     function handleKeyPress(event) {
-        // Player 1 controls
-        if (event.key === 'w') player1.direction = 'UP';
-        if (event.key === 's') player1.direction = 'DOWN';
-        if (event.key === 'a') player1.direction = 'LEFT';
-        if (event.key === 'd') player1.direction = 'RIGHT';
-        if (event.key === ' ') fireBullet(player1.x, player1.y, 'RIGHT');
+        if (event.key === 'ArrowLeft') player.x -= playerSpeed;
+        if (event.key === 'ArrowRight') player.x += playerSpeed;
 
-        // Player 2 controls
-        if (event.key === 'ArrowUp') player2.direction = 'UP';
-        if (event.key === 'ArrowDown') player2.direction = 'DOWN';
-        if (event.key === 'ArrowLeft') player2.direction = 'LEFT';
-        if (event.key === 'ArrowRight') player2.direction = 'RIGHT';
-        if (event.key === 'Enter') fireBullet(player2.x, player2.y, 'LEFT');
-    }
-
-    // Fire a bullet
-    function fireBullet(x, y, direction) {
-        bullets.push({ x: x + (direction === 'LEFT' ? -bulletSize : playerSize),
-                      y: y + playerSize / 2 - bulletSize / 2,
-                      direction: direction });
+        if (event.key === ' ') {
+            // Fire bullet
+            let bullet = {
+                x: player.x + playerSize / 2 - bulletSize / 2,
+                y: player.y + playerSize,
+                remove: false
+            };
+            bullets.push(bullet);
+        }
     }
 
     // Display game over screen
     function displayGameOver() {
-        clearInterval(gameInterval);
-        winnerDisplay.textContent = player1.score > player2.score ? 'Player 1' : 'Player 2';
+        finalScoreDisplay.textContent = score;
         gameOverDisplay.style.display = 'block';
     }
 
-    // Restart the game
+    // Reset the game
     function resetGame() {
-        initGame();
+        player = { x: 275, y: 350, width: playerSize, height: playerSize };
+        bullets = [];
+        monsters = [];
+        score = 0;
+        scoreDisplay.textContent = `Score: ${score}`;
+        gameOver = false;
+        gameOverDisplay.style.display = 'none';
+        spawnMonster();
+        gameInterval = setInterval(gameLoop, 1000 / 60);  // 60 FPS
     }
 
-    // Start the game with selected mode
+    // Game loop
+    function gameLoop() {
+        if (gameOver) return;
+        movePlayer();
+        moveBullets();
+        moveMonsters();
+        checkCollisions();
+        drawGame();
+    }
+
+    // Draw all game elements
+    function drawGame() {
+        board.innerHTML = ''; // Clear board
+        drawPlayer();
+        drawBullets();
+        drawMonsters();
+    }
+
+    // Start the game
     window.addEventListener('keydown', handleKeyPress);
-    initGame();
+    spawnMonster();  // Spawn initial monsters
+    gameInterval = setInterval(gameLoop, 1000 / 60);  // 60 FPS
 
 </script>
 
